@@ -48,6 +48,7 @@ ABaseCharacter::ABaseCharacter()
 	//Create health text component
 	HealthTextComponent = CreateDefaultSubobject<UTextRenderComponent>("HealthReaderComponent");
 	HealthTextComponent->SetupAttachment(RootComponent);
+	HealthTextComponent->SetOwnerNoSee(false);
 }
 
 // Called when the game starts or when spawned
@@ -126,6 +127,13 @@ void ABaseCharacter::BeginFire()
 void ABaseCharacter::EndFire()
 {
 	UE_LOG(LogTemp, Display, TEXT("Stop Fire"));
+}
+
+bool ABaseCharacter::IsRunning() const
+{
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0;
+	return Velocity.Size() > 0;
 }
 
 void ABaseCharacter::OnDeath()

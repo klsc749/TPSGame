@@ -74,6 +74,9 @@ protected:
 	void BeginFire();
 
 	void EndFire();
+
+	UFUNCTION(BlueprintCallable)
+	bool IsRunning() const;
 	
 public:	
 	// Called every frame

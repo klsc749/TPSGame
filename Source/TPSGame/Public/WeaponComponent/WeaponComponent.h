@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Weapon/BaseWeapon.h"
 #include "WeaponComponent.generated.h"
 
 
@@ -19,10 +20,30 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	
+	int32 CurrentWeaponIndex = 0;
 
+	UPROPERTY(VisibleAnywhere, Category="Weapon")
+	ABaseWeapon* CurrentWeapon;
+
+	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	TArray<ABaseWeapon*> Weapons;
+
+	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	TArray<TSubclassOf<ABaseWeapon>> WeaponClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	UAnimMontage* EquipMontage; 
+	
 public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	void SpawnWeapon();
+	void StartFire();
+	void StopFire();
+	void EquipWeapon(int32 WeaponIndex);
+	void NextWeapon();
 
+private:
+	void AttachWeaponToSocket(ABaseWeapon* Weapon, USceneComponent* SceneComponent, const FName& SocketName) const;
+	void PlayAnimationMontage(UAnimMontage* Animation);
 		
 };
