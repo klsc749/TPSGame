@@ -6,6 +6,8 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "HealthComponent/HealthComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "BaseCharacter.generated.h"
 
 UCLASS()
@@ -27,6 +29,15 @@ protected:
 	//Spring arm
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera")
 	USpringArmComponent* SpringArmComponent;
+	//Health component
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component")
+	UHealthComponent* HealthComponent;
+	//the text of health
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component")
+	UTextRenderComponent* HealthTextComponent;
+	//Death animation
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	UAnimMontage* DeathMontage; 
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Sprint")
 	float BaseSpeed = 600.0f;
@@ -51,12 +62,6 @@ protected:
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
 	void LookUpAtRate(float Rate);
-
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 	void BeginSprint();
 
@@ -89,5 +94,7 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return SpringArmComponent; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return CameraComponent; }
-	
+private:
+	void OnDeath();
+	void OnHealthChange(float Health) const;	
 };

@@ -39,6 +39,15 @@ ABaseCharacter::ABaseCharacter()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	CameraComponent->SetupAttachment(SpringArmComponent, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	CameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	//Create health component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComponent");
+	HealthComponent->OnDeath.AddUObject(this, &ABaseCharacter::OnDeath);
+	HealthComponent->OnHealthChange.AddUObject(this, &ABaseCharacter::OnHealthChange);
+	
+	//Create health text component
+	HealthTextComponent = CreateDefaultSubobject<UTextRenderComponent>("HealthReaderComponent");
+	HealthTextComponent->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
@@ -89,14 +98,6 @@ void ABaseCharacter::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-void ABaseCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-}
-
-void ABaseCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-}
-
 void ABaseCharacter::BeginSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
@@ -125,6 +126,23 @@ void ABaseCharacter::BeginFire()
 void ABaseCharacter::EndFire()
 {
 	UE_LOG(LogTemp, Display, TEXT("Stop Fire"));
+}
+
+void ABaseCharacter::OnDeath()
+{
+	PlayAnimMontage(DeathMontage);
+	GetCharacterMovement()->DisableMovement();
+	SetLifeSpan(5.f);
+	if(Controller)
+	{
+		Controller->ChangeState(NAME_Spectating);
+	}
+	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+}
+
+void ABaseCharacter::OnHealthChange(float Health) const
+{
+	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), Health)));
 }
 
 // Called every frame
