@@ -20,7 +20,7 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	
+	/**Weapon Info**/
 	int32 CurrentWeaponIndex = 0;
 
 	UPROPERTY(VisibleAnywhere, Category="Weapon")
@@ -32,8 +32,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Weapon")
 	TArray<TSubclassOf<ABaseWeapon>> WeaponClasses;
 
+	/**Animation**/
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
-	UAnimMontage* EquipMontage; 
+	UAnimMontage* EquipMontageAnim;
+
+	UPROPERTY(EditDefaultsOnly, Category="Animation")
+	UAnimMontage* ReloadMontageAnim;
+
+	UPROPERTY()
+	AMag* CurrentMag;
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 public:	
 	void SpawnWeapon();
@@ -41,9 +50,22 @@ public:
 	void StopFire();
 	void EquipWeapon(int32 WeaponIndex);
 	void NextWeapon();
+	void Reload();
 
 private:
-	void AttachWeaponToSocket(ABaseWeapon* Weapon, USceneComponent* SceneComponent, const FName& SocketName) const;
+	void AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent, const FName& SocketName) const;
 	void PlayAnimationMontage(UAnimMontage* Animation);
-		
+	void InitAnimations();
+	bool CanEquip() const;
+	bool CanFire() const;
+	bool CanReload() const;
+	bool CheckIsPlayer(const USkeletalMeshComponent* Mesh) const;
+	void OnEquipFinished(const USkeletalMeshComponent* Mesh);
+	void OnChangeWeapon(const USkeletalMeshComponent* Mesh);
+	void OnReloadFinished(const USkeletalMeshComponent* Mesh);
+	void OnChangeMag(const USkeletalMeshComponent* Mesh);
+	void SpawnMag();
+	void DestroyMag();
+	bool InEquipProgress = false;
+	bool InReloadProgress = false;
 };

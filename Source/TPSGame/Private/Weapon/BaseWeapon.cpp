@@ -12,9 +12,9 @@ ABaseWeapon::ABaseWeapon()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
-	WeaponAudio = CreateDefaultSubobject<UAudioComponent>("WeaponAudio");
-	WeaponAudio->SetComponentTickEnabled(false);
-	WeaponAudio->SetAutoActivate(false);
+	ShotAudio = CreateDefaultSubobject<UAudioComponent>("WeaponAudio");
+	ShotAudio->SetComponentTickEnabled(false);
+	ShotAudio->SetAutoActivate(false);
 	SetRootComponent(WeaponMesh);
 }
 
@@ -34,7 +34,6 @@ void ABaseWeapon::StartFire()
 void ABaseWeapon::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(ShotTimerHandle);
-	UE_LOG(LogTemp, Warning, TEXT("Stop Shot"));
 }
 
 void ABaseWeapon::ChangeAmmoAmount(const int& ChangeValue)
@@ -52,7 +51,6 @@ void ABaseWeapon::ChangeClipAmount(const int& ChangeValue)
 
 void ABaseWeapon::Shot()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Shot"));
 	if(!GetWorld()){
 		return;
 	}
@@ -67,13 +65,12 @@ void ABaseWeapon::Shot()
 	if(HitResult.bBlockingHit){
 		DrawDebugLine(GetWorld(), SocketLocation, HitResult.ImpactPoint, FColor::Red, false, 3.0f, 0, 3.0f);
 		DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 10.0f, 24, FColor::Red, false, 5.0f);
-		MakeDamage(HitResult);
 	}
 	else{
 		DrawDebugLine(GetWorld(), SocketLocation, TraceEnd, FColor::Yellow, false, 3.0f, 0, 3.0f);
 	}
 
-	WeaponAudio->Play();
+	ShotAudio->Play();
 }
 
 AController* ABaseWeapon::GetPlayerController() const
@@ -132,12 +129,13 @@ void ABaseWeapon::MakeHit(FHitResult& HitResult, const FVector& TraceStart, cons
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, CollisionQueryParams);
 }
 
-void ABaseWeapon::MakeDamage(const FHitResult& HitResult)
+void ABaseWeapon::HideMag()
 {
-	const auto DamageActor = HitResult.GetActor();
-	if(!DamageActor)
-		return;
+	GetWeaponMesh()->UnHideBoneByName(MagBoneName);
+}
 
-	DamageActor->TakeDamage(DamageAmount, FDamageEvent{}, GetPlayerController(), this);
+void ABaseWeapon::UnHideMag()
+{
+	GetWeaponMesh()->HideBoneByName(MagBoneName, EPhysBodyOp::PBO_None);
 }
 

@@ -8,6 +8,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "HealthComponent/HealthComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "WeaponComponent/WeaponComponent.h"
 #include "BaseCharacter.generated.h"
 
 UCLASS()
@@ -37,8 +38,11 @@ protected:
 	UTextRenderComponent* HealthTextComponent;
 	//Death animation
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
-	UAnimMontage* DeathMontage; 
+	UAnimMontage* DeathMontage;
 
+	UPROPERTY(EditDefaultsOnly, Category="Component")
+	UWeaponComponent* WeaponComponent;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Sprint")
 	float BaseSpeed = 600.0f;
 
@@ -97,7 +101,10 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return SpringArmComponent; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return CameraComponent; }
+
+	bool IsSprinting() const {return IsSprint;}
 private:
+	bool IsSprint = false;
 	void OnDeath();
 	void OnHealthChange(float Health) const;	
 };

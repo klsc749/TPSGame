@@ -3,6 +3,10 @@
 
 #include "WeaponComponent/WeaponComponent.h"
 
+#include "AnimNotify/ChangeMagAnimNotify.h"
+#include "AnimNotify/ChangeWeaponAnimNotify.h"
+#include "AnimNotify/EquipFinishAnimNotify.h"
+#include "AnimNotify/ReloadFinishAnimNotify.h"
 #include "Player/BaseCharacter.h"
 
 // Sets default values for this component's properties
@@ -21,10 +25,22 @@ void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
+	InitAnimations();
 	CurrentWeaponIndex = 0;
 	SpawnWeapon();
 	EquipWeapon(CurrentWeaponIndex);
+}
+
+void UWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	CurrentWeapon = nullptr;
+	for(auto Weapon : Weapons)
+	{
+		Weapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		Weapon->Destroy();
+	}
+	Weapons.Empty();
 }
 
 void UWeaponComponent::SpawnWeapon()
@@ -42,12 +58,14 @@ void UWeaponComponent::SpawnWeapon()
 			continue;
 		Weapon->SetOwner(Character);
 		Weapons.Add(Weapon);
-		AttachWeaponToSocket(Weapon, Character->GetMesh(), Weapon->GetArmorySocketName());
+		AttachActorToSocket(Weapon, Character->GetMesh(), Weapon->GetArmorySocketName());
 	}
 }
 
 void UWeaponComponent::StartFire()
 {
+	if(!CanFire())
+		return;
 	if(!CurrentWeapon)
 		return;
 	CurrentWeapon->StartFire();
@@ -70,29 +88,43 @@ void UWeaponComponent::EquipWeapon(int32 WeaponIndex)
 
 	if(CurrentWeapon)
 	{
-		AttachWeaponToSocket(CurrentWeapon, Character->GetMesh(), CurrentWeapon->GetArmorySocketName());
+		AttachActorToSocket(CurrentWeapon, Character->GetMesh(), CurrentWeapon->GetArmorySocketName());
 	}
 	
 	CurrentWeapon = Weapons[WeaponIndex];
-	AttachWeaponToSocket(CurrentWeapon, Character->GetMesh(), CurrentWeapon->GetEquipSocketName());
-	PlayAnimationMontage(EquipMontage);
+	AttachActorToSocket(CurrentWeapon, Character->GetMesh(), CurrentWeapon->GetEquipSocketName());
 }
 
 void UWeaponComponent::NextWeapon()
 {
+	if(!CanEquip())
+		return;
+	if(!EquipMontageAnim)
+		return;
 	if(Weapons.Num() == 0)
 		return;
+	InEquipProgress = true;
 	CurrentWeaponIndex = (CurrentWeaponIndex + 1) % Weapons.Num();
-	EquipWeapon(CurrentWeaponIndex);
+	PlayAnimationMontage(EquipMontageAnim);
 }
 
-void UWeaponComponent::AttachWeaponToSocket(ABaseWeapon* Weapon, USceneComponent* SceneComponent,
-	const FName& SocketName) const
+void UWeaponComponent::Reload()
 {
-	if(!Weapon || !SceneComponent)
+	if(!CanReload())
+		return;
+	if(!ReloadMontageAnim)
+		return;
+	InReloadProgress = true;
+	PlayAnimationMontage(ReloadMontageAnim);
+}
+
+void UWeaponComponent::AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent,
+                                            const FName& SocketName) const
+{
+	if(!Actor || !SceneComponent)
 		return;
 	const FAttachmentTransformRules AttachmentTransformRules(EAttachmentRule::SnapToTarget, false);
-	Weapon->AttachToComponent(SceneComponent, AttachmentTransformRules, SocketName);
+	Actor->AttachToComponent(SceneComponent, AttachmentTransformRules, SocketName);
 }
 
 void UWeaponComponent::PlayAnimationMontage(UAnimMontage* Animation)
@@ -101,5 +133,137 @@ void UWeaponComponent::PlayAnimationMontage(UAnimMontage* Animation)
 	if(!Character)
 		return;
 	Character->PlayAnimMontage(Animation);
+}
+
+void UWeaponComponent::InitAnimations()
+{
+	if(!EquipMontageAnim)
+		return;
+	TArray<FAnimNotifyEvent> Notifies = EquipMontageAnim->Notifies;
+	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
+	{
+		UEquipFinishAnimNotify* EquipFinishAnimNotify = Cast<UEquipFinishAnimNotify>(NotifyEvent.Notify);
+		if(EquipFinishAnimNotify)
+		{
+			EquipFinishAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnEquipFinished);
+			break;
+		}
+	}
+
+	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
+	{
+		UChangeWeaponAnimNotify* ChangeWeaponAnimNotify = Cast<UChangeWeaponAnimNotify>(NotifyEvent.Notify);
+		if(ChangeWeaponAnimNotify)
+		{
+			ChangeWeaponAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnChangeWeapon);
+			break;
+		}
+	}
+	if(!ReloadMontageAnim)
+		return;
+	Notifies = ReloadMontageAnim->Notifies;
+	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
+	{
+		UReloadFinishAnimNotify* ReloadFinishAnimNotify = Cast<UReloadFinishAnimNotify>(NotifyEvent.Notify);
+		if(ReloadFinishAnimNotify)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ReloadFinishAnimNotify %p"), ReloadFinishAnimNotify);
+			ReloadFinishAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnReloadFinished);
+			break;
+		}
+	}
+
+	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
+	{
+		UChangeMagAnimNotify* ChangeMagAnimNotify = Cast<UChangeMagAnimNotify>(NotifyEvent.Notify);
+		UE_LOG(LogTemp, Warning, TEXT("Bind %p"), ChangeMagAnimNotify);
+		if(ChangeMagAnimNotify)
+		{
+			ChangeMagAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnChangeMag);
+			break;
+		}
+	}
+}
+
+bool UWeaponComponent::CanEquip() const
+{
+	return !InEquipProgress && !InReloadProgress;
+}
+
+bool UWeaponComponent::CanFire() const
+{
+	const ABaseCharacter* Player = Cast<ABaseCharacter>(GetOwner());
+	if(!Player)
+		return false;
+	return CurrentWeapon && !Player->IsSprinting() && !InEquipProgress && !InReloadProgress;
+}
+
+bool UWeaponComponent::CanReload() const
+{
+	return !InEquipProgress && !InReloadProgress;
+}
+
+bool UWeaponComponent::CheckIsPlayer(const USkeletalMeshComponent* Mesh) const
+{
+	const ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if(!Character)
+		return false;
+	if(Character->GetMesh() != Mesh)
+		return false;
+	return true;
+}
+
+void UWeaponComponent::OnReloadFinished(const USkeletalMeshComponent* Mesh)
+{
+	if(!CheckIsPlayer(Mesh))
+		return;
+	InReloadProgress = false;
+	CurrentWeapon->HideMag();
+	DestroyMag();
+}
+
+void UWeaponComponent::OnChangeMag(const USkeletalMeshComponent* Mesh)
+{
+	if(!CheckIsPlayer(Mesh))
+		return;
+	CurrentWeapon->UnHideMag();
+	SpawnMag();
+}
+
+void UWeaponComponent::SpawnMag()
+{
+	if(!GetWorld() && !CurrentWeapon)
+		return;
+
+	ABaseCharacter* Character = Cast<ABaseCharacter>(GetOwner());
+	if(!Character)
+		return;
+	CurrentMag = GetWorld()->SpawnActor<AMag>(CurrentWeapon->GetMagClass());
+	if(!CurrentWeapon)
+		return;
+	CurrentWeapon->SetOwner(Character);
+	AttachActorToSocket(CurrentMag, Character->GetMesh(), CurrentWeapon->GetMagSocketName());
+}
+
+void UWeaponComponent::DestroyMag()
+{
+	if(!CurrentMag)
+		return;
+	CurrentMag->Destroy();
+	CurrentMag = nullptr;
+}
+
+void UWeaponComponent::OnEquipFinished(const USkeletalMeshComponent* Mesh)
+{
+	if(!CheckIsPlayer(Mesh))
+		return;
+	InEquipProgress = false;
+}
+
+void UWeaponComponent::OnChangeWeapon(const USkeletalMeshComponent* Mesh)
+{
+	if(!CheckIsPlayer(Mesh))
+		return;
+	EquipWeapon(CurrentWeaponIndex);
 }
 

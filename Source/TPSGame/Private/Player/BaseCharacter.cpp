@@ -49,6 +49,9 @@ ABaseCharacter::ABaseCharacter()
 	HealthTextComponent = CreateDefaultSubobject<UTextRenderComponent>("HealthReaderComponent");
 	HealthTextComponent->SetupAttachment(RootComponent);
 	HealthTextComponent->SetOwnerNoSee(false);
+
+	//Create Weapon Component
+	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>("WeaponComponent");
 }
 
 // Called when the game starts or when spawned
@@ -101,11 +104,13 @@ void ABaseCharacter::LookUpAtRate(float Rate)
 
 void ABaseCharacter::BeginSprint()
 {
+	IsSprint = true;
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
 
 void ABaseCharacter::EndSprint()
 {
+	IsSprint = false;
 	GetCharacterMovement()->MaxWalkSpeed = BaseSpeed;
 }
 
@@ -121,12 +126,12 @@ void ABaseCharacter::EndCrouch()
 
 void ABaseCharacter::BeginFire()
 {
-	UE_LOG(LogTemp, Display, TEXT("Fire"));
+	WeaponComponent->StartFire();
 }
 
 void ABaseCharacter::EndFire()
 {
-	UE_LOG(LogTemp, Display, TEXT("Stop Fire"));
+	WeaponComponent->StopFire();
 }
 
 bool ABaseCharacter::IsRunning() const
@@ -177,13 +182,18 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ABaseCharacter::BeginFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ABaseCharacter::EndFire);
 
+	//Change weapon
+	PlayerInputComponent->BindAction("NextWeapon", IE_Pressed, WeaponComponent, &UWeaponComponent::NextWeapon);
+
+	//Reload
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, WeaponComponent, &UWeaponComponent::Reload);
 	PlayerInputComponent->BindAxis("MoveForward", this, &ABaseCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ABaseCharacter::MoveRight);
 	
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
-	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
+	// "turn rate" is for devices that we choose to treat as a rate of change, such as an analog joystick
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("TurnRate", this, &ABaseCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Mag/Mag.h"
 #include "BaseWeapon.generated.h"
 
 UCLASS()
@@ -21,10 +22,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Mesh")
 	USkeletalMeshComponent* WeaponMesh;
-
-	UPROPERTY(EditDefaultsOnly, Category="Mesh")
-	UAudioComponent* WeaponAudio;
-
+	
+	UPROPERTY(EditDefaultsOnly, Category="Audio")
+	UAudioComponent* ShotAudio;
 	
 	UPROPERTY(VisibleAnywhere, Category="Ammo")
 	int AmmoNum = 0;
@@ -51,27 +51,37 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Socket")
 	FName WeaponArmoryName = "ArmorySocket";
+
+	UPROPERTY(EditDefaultsOnly, Category="Socket")
+	FName WeaponMagName = "MagSocket";
+
+	UPROPERTY(EditDefaultsOnly, Category="Mag")
+	FName MagBoneName = "b_gun_mag";
+
+	UPROPERTY(EditDefaultsOnly, Category="Mag")
+	TSubclassOf<AMag> Mag;
+	virtual void Shot();
+	AController* GetPlayerController() const;
 public:
 	virtual void StartFire();
 	virtual  void StopFire();
 	inline int GetCurrentAmmoAmount() const {return AmmoNum;};
 	inline FName GetEquipSocketName() const {return WeaponEquipSocket;}
 	inline FName GetArmorySocketName() const {return WeaponArmoryName;}
+	inline FName GetMagSocketName() const {return WeaponMagName;}
 	void ChangeAmmoAmount(const int& ChangeValue);
 	void ChangeClipAmount(const int& ChangeValue);
 	FVector GetMuzzleWorldLocation() const;
+	inline  USkeletalMeshComponent* GetWeaponMesh() const {return WeaponMesh;}
 	virtual bool GetTraceData(FVector& TraceStart, FVector& TraceEnd) const;
 	virtual void MakeHit(FHitResult& HitResult, const FVector& TraceStart, const FVector& TraceEnd) const;
+	void HideMag();
+	void UnHideMag();
+	inline TSubclassOf<AMag> GetMagClass() const {return Mag;}
 private:
 	
 	FTimerHandle ShotTimerHandle;
-	
-	virtual void Shot();
-
-	AController* GetPlayerController() const;
 
 	bool GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const;
-	
-	virtual void MakeDamage(const FHitResult& HitResult);
 
 };
