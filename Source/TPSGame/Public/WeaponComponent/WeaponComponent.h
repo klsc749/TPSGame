@@ -39,6 +39,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	UAnimMontage* ReloadMontageAnim;
 
+	UPROPERTY(EditDefaultsOnly, Category="Audio")
+	UAudioComponent* AudioComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category="Sound")
+	USoundBase* ChangeWeaponSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Sound")
+	USoundBase* ChangeMagSound;
+	
 	UPROPERTY()
 	AMag* CurrentMag;
 	
@@ -66,6 +75,7 @@ private:
 	void OnChangeMag(const USkeletalMeshComponent* Mesh);
 	void SpawnMag();
 	void DestroyMag();
+	void PlaySound(USoundBase* SoundBase) const;
 	bool InEquipProgress = false;
 	bool InReloadProgress = false;
 };

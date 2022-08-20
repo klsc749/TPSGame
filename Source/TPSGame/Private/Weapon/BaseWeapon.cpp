@@ -12,9 +12,9 @@ ABaseWeapon::ABaseWeapon()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
-	ShotAudio = CreateDefaultSubobject<UAudioComponent>("WeaponAudio");
-	ShotAudio->SetComponentTickEnabled(false);
-	ShotAudio->SetAutoActivate(false);
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("WeaponAudio");
+	AudioComponent->SetComponentTickEnabled(false);
+	AudioComponent->SetAutoActivate(false);
 	SetRootComponent(WeaponMesh);
 }
 
@@ -22,7 +22,9 @@ ABaseWeapon::ABaseWeapon()
 void ABaseWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	CurrentBulletNum = WeaponAmmoData.BulletNum;
+	SetCurrentBulletsNumInMag();
+	LogWeaponMagData();
 }
 
 void ABaseWeapon::StartFire()
@@ -36,16 +38,32 @@ void ABaseWeapon::StopFire()
 	GetWorldTimerManager().ClearTimer(ShotTimerHandle);
 }
 
-void ABaseWeapon::ChangeAmmoAmount(const int& ChangeValue)
+void ABaseWeapon::DecreaseCurrentBulletNumInMag()
 {
-	AmmoNum += ChangeValue;
-	ChangeClipAmount(AmmoNum / AmmoNumEachClip);
-	AmmoNum = FMath::Clamp(AmmoNum, 0, AmmoNumEachClip);
+	ChangeCurrentBulletNumInMag(-1);
 }
 
-void ABaseWeapon::ChangeClipAmount(const int& ChangeValue)
+void ABaseWeapon::ChangeCurrentBulletNumInMag(const int32& ChangeValue)
 {
-	ClipNum = FMath::Clamp(ClipNum + ChangeValue, 0, MAX_int32);
+	CurrentBulletNumInMag += ChangeValue;
+}
+
+void ABaseWeapon::Reload()
+{
+	OnClipEmpty.Broadcast();
+	SetCurrentBulletsNumInMag();
+}
+
+void ABaseWeapon::LogWeaponMagData() const
+{
+	UE_LOG(LogTemp, Warning, TEXT("%d/%d, Clip:%d"), CurrentBulletNumInMag, CurrentBulletNum, GetMagNum());
+}
+
+void ABaseWeapon::SetCurrentBulletsNumInMag()
+{
+	CurrentBulletNumInMag = CurrentBulletNum < WeaponAmmoData.BulletNumEachMag ?
+		CurrentBulletNum : WeaponAmmoData.BulletNumEachMag;
+	CurrentBulletNum -= CurrentBulletNumInMag;
 }
 
 
@@ -54,6 +72,9 @@ void ABaseWeapon::Shot()
 	if(!GetWorld()){
 		return;
 	}
+
+	if(!CheckCanShot())
+		return;
 	const FVector SocketLocation = GetMuzzleWorldLocation();
 
 	FVector TraceStart, TraceEnd;
@@ -69,8 +90,8 @@ void ABaseWeapon::Shot()
 	else{
 		DrawDebugLine(GetWorld(), SocketLocation, TraceEnd, FColor::Yellow, false, 3.0f, 0, 3.0f);
 	}
-
-	ShotAudio->Play();
+	DecreaseCurrentBulletNumInMag();
+	PlaySound(ShotSound);
 }
 
 AController* ABaseWeapon::GetPlayerController() const
@@ -86,6 +107,32 @@ AController* ABaseWeapon::GetPlayerController() const
 	}
 
 	return Controller;
+}
+
+void ABaseWeapon::PlaySound(USoundBase* SoundBase) const
+{
+	if(!SoundBase && !AudioComponent)
+		return;
+	AudioComponent->Sound = SoundBase;
+	AudioComponent->Play();
+}
+
+bool ABaseWeapon::CheckCanShot()
+{
+	if(!CanShot())
+	{
+		StopFire();
+		if(IsAmmoEmpty())
+		{
+			PlaySound(NoBulletSound);
+		}
+		else
+		{
+			Reload();
+		}
+		return false;
+	}
+	return true;
 }
 
 bool ABaseWeapon::GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const
@@ -129,12 +176,12 @@ void ABaseWeapon::MakeHit(FHitResult& HitResult, const FVector& TraceStart, cons
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, CollisionQueryParams);
 }
 
-void ABaseWeapon::HideMag()
+void ABaseWeapon::HideMag() const
 {
 	GetWeaponMesh()->UnHideBoneByName(MagBoneName);
 }
 
-void ABaseWeapon::UnHideMag()
+void ABaseWeapon::UnHideMag() const
 {
 	GetWeaponMesh()->HideBoneByName(MagBoneName, EPhysBodyOp::PBO_None);
 }

@@ -7,6 +7,17 @@
 #include "Mag/Mag.h"
 #include "BaseWeapon.generated.h"
 
+USTRUCT()
+struct FWeaponClipData
+{
+	GENERATED_BODY()
+	UPROPERTY(EditDefaultsOnly)
+	int32 BulletNum;
+	UPROPERTY(EditDefaultsOnly)
+	int32 BulletNumEachMag;
+};
+DECLARE_MULTICAST_DELEGATE(FOnClipEmpty);
+
 UCLASS()
 class TPSGAME_API ABaseWeapon : public AActor
 {
@@ -24,15 +35,16 @@ protected:
 	USkeletalMeshComponent* WeaponMesh;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Audio")
-	UAudioComponent* ShotAudio;
-	
-	UPROPERTY(VisibleAnywhere, Category="Ammo")
-	int AmmoNum = 0;
+	UAudioComponent* AudioComponent;
 
-	UPROPERTY(VisibleAnywhere, Category="Ammo")
-	int ClipNum = 0;
+	UPROPERTY(EditDefaultsOnly, Category="Audio")
+	USoundBase* ShotSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Audio")
+	USoundBase* NoBulletSound;
+	
 	UPROPERTY(EditDefaultsOnly, Category="Ammo")
-	int AmmoNumEachClip = 30;
+	FWeaponClipData WeaponAmmoData{16,  3};
 
 	UPROPERTY(EditDefaultsOnly, Category="Ammo")
 	bool IsAmmoInfinite = false;
@@ -62,26 +74,35 @@ protected:
 	TSubclassOf<AMag> Mag;
 	virtual void Shot();
 	AController* GetPlayerController() const;
+	bool CanShot() const {return  CurrentBulletNumInMag != 0;}
+	void PlaySound(USoundBase* SoundBase) const;
+	bool CheckCanShot();
 public:
+	FOnClipEmpty OnClipEmpty;
 	virtual void StartFire();
 	virtual  void StopFire();
-	inline int GetCurrentAmmoAmount() const {return AmmoNum;};
+	void DecreaseCurrentBulletNumInMag();
+	inline int GetCurrentAmmoAmount() const {return CurrentBulletNum;};
 	inline FName GetEquipSocketName() const {return WeaponEquipSocket;}
 	inline FName GetArmorySocketName() const {return WeaponArmoryName;}
 	inline FName GetMagSocketName() const {return WeaponMagName;}
-	void ChangeAmmoAmount(const int& ChangeValue);
-	void ChangeClipAmount(const int& ChangeValue);
 	FVector GetMuzzleWorldLocation() const;
 	inline  USkeletalMeshComponent* GetWeaponMesh() const {return WeaponMesh;}
 	virtual bool GetTraceData(FVector& TraceStart, FVector& TraceEnd) const;
 	virtual void MakeHit(FHitResult& HitResult, const FVector& TraceStart, const FVector& TraceEnd) const;
-	void HideMag();
-	void UnHideMag();
+	void HideMag() const;
+	void UnHideMag() const;
+	void Reload();
 	inline TSubclassOf<AMag> GetMagClass() const {return Mag;}
+	inline bool IsAmmoEmpty() const {return CurrentBulletNum == 0;}
+	inline int32 GetMagNum() const {return CurrentBulletNum / WeaponAmmoData.BulletNumEachMag;}
 private:
-	
+	int32 CurrentBulletNum;
+	int32 CurrentBulletNumInMag;
 	FTimerHandle ShotTimerHandle;
 
 	bool GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const;
-
+	void ChangeCurrentBulletNumInMag(const int32& ChangeValue);
+	void LogWeaponMagData() const;
+	void SetCurrentBulletsNumInMag();
 };

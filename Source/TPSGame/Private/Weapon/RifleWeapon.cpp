@@ -11,6 +11,8 @@ void ARifleWeapon::Shot()
 	if(!GetWorld()){
 		return;
 	}
+	if(!CheckCanShot())
+		return;
 	const FVector SocketLocation = GetMuzzleWorldLocation();
 
 	FVector TraceStart, TraceEnd;
@@ -27,8 +29,8 @@ void ARifleWeapon::Shot()
 	else{
 		DrawDebugLine(GetWorld(), SocketLocation, TraceEnd, FColor::Yellow, false, 3.0f, 0, 3.0f);
 	}
-	if(ShotAudio)
-		ShotAudio->Play();
+	PlaySound(ShotSound);
+	DecreaseCurrentBulletNumInMag();
 	PlayAnimation(FireAnim);
 }
 

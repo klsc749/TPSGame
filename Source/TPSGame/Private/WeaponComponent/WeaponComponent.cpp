@@ -7,6 +7,7 @@
 #include "AnimNotify/ChangeWeaponAnimNotify.h"
 #include "AnimNotify/EquipFinishAnimNotify.h"
 #include "AnimNotify/ReloadFinishAnimNotify.h"
+#include "Components/AudioComponent.h"
 #include "Player/BaseCharacter.h"
 
 // Sets default values for this component's properties
@@ -15,7 +16,9 @@ UWeaponComponent::UWeaponComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("ChangeWeapon");
+	AudioComponent->SetAutoActivate(false);
+	AudioComponent->SetComponentTickEnabled(false);
 	// ...
 }
 
@@ -57,6 +60,7 @@ void UWeaponComponent::SpawnWeapon()
 		if(!Weapon)
 			continue;
 		Weapon->SetOwner(Character);
+		Weapon->OnClipEmpty.AddUObject(this, &UWeaponComponent::Reload);
 		Weapons.Add(Weapon);
 		AttachActorToSocket(Weapon, Character->GetMesh(), Weapon->GetArmorySocketName());
 	}
@@ -135,6 +139,14 @@ void UWeaponComponent::PlayAnimationMontage(UAnimMontage* Animation)
 	Character->PlayAnimMontage(Animation);
 }
 
+void UWeaponComponent::PlaySound(USoundBase* SoundBase) const
+{
+	if(!AudioComponent && !SoundBase)
+		return;
+	AudioComponent->Sound = SoundBase;
+	AudioComponent->Play();
+}
+
 void UWeaponComponent::InitAnimations()
 {
 	if(!EquipMontageAnim)
@@ -192,6 +204,8 @@ bool UWeaponComponent::CanEquip() const
 
 bool UWeaponComponent::CanFire() const
 {
+	if(!CurrentWeapon)
+		return false;
 	const ABaseCharacter* Player = Cast<ABaseCharacter>(GetOwner());
 	if(!Player)
 		return false;
@@ -227,6 +241,7 @@ void UWeaponComponent::OnChangeMag(const USkeletalMeshComponent* Mesh)
 	if(!CheckIsPlayer(Mesh))
 		return;
 	CurrentWeapon->UnHideMag();
+	PlaySound(ChangeMagSound);
 	SpawnMag();
 }
 
@@ -264,6 +279,7 @@ void UWeaponComponent::OnChangeWeapon(const USkeletalMeshComponent* Mesh)
 {
 	if(!CheckIsPlayer(Mesh))
 		return;
+	PlaySound(ChangeWeaponSound);
 	EquipWeapon(CurrentWeaponIndex);
 }
 
