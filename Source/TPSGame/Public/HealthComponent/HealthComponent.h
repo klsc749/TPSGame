@@ -27,6 +27,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsDead() const {return Health <= 0.0f;}
 
+	float GetHealthPercent() const {return Health / MaxHealth;}
+
 	FOnDeath OnDeath;
 
 	FOnHealthChange OnHealthChange;

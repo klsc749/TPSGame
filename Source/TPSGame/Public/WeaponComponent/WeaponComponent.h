@@ -60,6 +60,8 @@ public:
 	void EquipWeapon(int32 WeaponIndex);
 	void NextWeapon();
 	void Reload();
+	bool GetWeaponUIData(FWeaponUIData& WeaponUIData) const;
+	FString GetBulletsInfo() const;
 
 private:
 	void AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent, const FName& SocketName) const;

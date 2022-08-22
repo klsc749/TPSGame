@@ -119,11 +119,29 @@ void UWeaponComponent::Reload()
 	if(!ReloadMontageAnim)
 		return;
 	InReloadProgress = true;
+	CurrentWeapon->Reload();
 	PlayAnimationMontage(ReloadMontageAnim);
 }
 
+bool UWeaponComponent::GetWeaponUIData(FWeaponUIData& WeaponUIData) const
+{
+	if(CurrentWeapon)
+	{
+		WeaponUIData = CurrentWeapon->GetWeaponUIData();
+		return true;
+	}
+	return false;
+}
+
+FString UWeaponComponent::GetBulletsInfo() const
+{
+	if(!CurrentWeapon)
+		return FString("");
+	return CurrentWeapon->GetBulletsInfo();
+}
+
 void UWeaponComponent::AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent,
-                                            const FName& SocketName) const
+                                           const FName& SocketName) const
 {
 	if(!Actor || !SceneComponent)
 		return;

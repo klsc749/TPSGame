@@ -50,8 +50,20 @@ void ABaseWeapon::ChangeCurrentBulletNumInMag(const int32& ChangeValue)
 
 void ABaseWeapon::Reload()
 {
-	OnClipEmpty.Broadcast();
 	SetCurrentBulletsNumInMag();
+}
+
+void ABaseWeapon::ReloadBullet()
+{
+	SetCurrentBulletsNumInMag();
+}
+
+FString ABaseWeapon::GetBulletsInfo() const
+{
+	TArray<FStringFormatArg> Args;
+	Args.Add(CurrentBulletNumInMag);
+	Args.Add(CurrentBulletNum);
+	return FString::Format(TEXT("{0}/{1}"), Args);
 }
 
 void ABaseWeapon::LogWeaponMagData() const
@@ -61,9 +73,11 @@ void ABaseWeapon::LogWeaponMagData() const
 
 void ABaseWeapon::SetCurrentBulletsNumInMag()
 {
-	CurrentBulletNumInMag = CurrentBulletNum < WeaponAmmoData.BulletNumEachMag ?
-		CurrentBulletNum : WeaponAmmoData.BulletNumEachMag;
-	CurrentBulletNum -= CurrentBulletNumInMag;
+	const int32 NeedToBeLoaded = WeaponAmmoData.BulletNumEachMag - CurrentBulletNumInMag;
+	const int32 ChangeValue = NeedToBeLoaded < CurrentBulletNum ?
+		NeedToBeLoaded : CurrentBulletNum;
+	CurrentBulletNumInMag += ChangeValue;
+	CurrentBulletNum -= ChangeValue;
 }
 
 
@@ -128,6 +142,7 @@ bool ABaseWeapon::CheckCanShot()
 		}
 		else
 		{
+			OnClipEmpty.Broadcast();
 			Reload();
 		}
 		return false;
@@ -150,10 +165,10 @@ bool ABaseWeapon::GetTraceData(FVector& TraceStart, FVector& TraceEnd) const
 	FRotator ViewRotation;
 	if(!GetPlayerViewPoint(ViewLocation, ViewRotation))
 		return false;
-	const int TraceMaxDistance = 1000;
+	const int TraceMaxDistance = 2000;
 	
 	TraceStart = ViewLocation; //SocketTransform.GetLocation();
-	const FVector ShootDirection = ViewRotation.Vector();
+	const FVector ShootDirection = FMath::VRandCone(ViewRotation.Vector(), FMath::DegreesToRadians(1.5));
 	TraceEnd = TraceStart + ShootDirection * TraceMaxDistance;
 
 	return true;
@@ -173,6 +188,7 @@ void ABaseWeapon::MakeHit(FHitResult& HitResult, const FVector& TraceStart, cons
 	}
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(GetOwner());
+	CollisionQueryParams.bReturnPhysicalMaterial = true;
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, CollisionQueryParams);
 }
 

@@ -13,9 +13,13 @@ UCLASS()
 class TPSGAME_API ABaseGameHUD : public AHUD
 {
 	GENERATED_BODY()
+protected:
+	UPROPERTY(EditDefaultsOnly, Category="Widget")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+	
 public:
 	virtual void DrawHUD() override;
-
+	virtual void BeginPlay() override;
 private:
 	void DrawCrossHair();	
 };

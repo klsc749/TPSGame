@@ -6,6 +6,18 @@
 #include "DrawDebugHelpers.h"
 #include "Player/BaseCharacter.h"
 
+
+ARifleWeapon::ARifleWeapon()
+{
+	WeaponVfxComponent = CreateDefaultSubobject<UWeaponVFXComponent>("WeaponFXComponent");	
+}
+
+void ARifleWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+	check(WeaponVfxComponent);
+}
+
 void ARifleWeapon::Shot()
 {
 	if(!GetWorld()){
@@ -22,12 +34,8 @@ void ARifleWeapon::Shot()
 	FHitResult HitResult;
 	MakeHit(HitResult, TraceStart, TraceEnd);
 	if(HitResult.bBlockingHit){
-		DrawDebugLine(GetWorld(), SocketLocation, HitResult.ImpactPoint, FColor::Red, false, 3.0f, 0, 3.0f);
-		DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 10.0f, 24, FColor::Red, false, 5.0f);
+		WeaponVfxComponent->PlayFXImpact(HitResult);
 		MakeDamage(HitResult);
-	}
-	else{
-		DrawDebugLine(GetWorld(), SocketLocation, TraceEnd, FColor::Yellow, false, 3.0f, 0, 3.0f);
 	}
 	PlaySound(ShotSound);
 	DecreaseCurrentBulletNumInMag();

@@ -8,14 +8,25 @@
 #include "BaseWeapon.generated.h"
 
 USTRUCT()
-struct FWeaponClipData
+struct FWeaponMagData
 {
 	GENERATED_BODY()
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category="Mag")
 	int32 BulletNum;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category="Mag")
 	int32 BulletNumEachMag;
 };
+
+USTRUCT(BlueprintType)
+struct FWeaponUIData
+{
+	GENERATED_BODY()
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Icon")
+	UTexture2D* WeaponIcon;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Icon")
+	UTexture2D* CrossHair;
+};
+
 DECLARE_MULTICAST_DELEGATE(FOnClipEmpty);
 
 UCLASS()
@@ -44,7 +55,7 @@ protected:
 	USoundBase* NoBulletSound;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Ammo")
-	FWeaponClipData WeaponAmmoData{16,  3};
+	FWeaponMagData WeaponAmmoData{16,  3};
 
 	UPROPERTY(EditDefaultsOnly, Category="Ammo")
 	bool IsAmmoInfinite = false;
@@ -72,6 +83,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Mag")
 	TSubclassOf<AMag> Mag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="UI")
+	FWeaponUIData WeaponUIData;
 	virtual void Shot();
 	AController* GetPlayerController() const;
 	bool CanShot() const {return  CurrentBulletNumInMag != 0;}
@@ -93,9 +107,12 @@ public:
 	void HideMag() const;
 	void UnHideMag() const;
 	void Reload();
+	void ReloadBullet();
 	inline TSubclassOf<AMag> GetMagClass() const {return Mag;}
 	inline bool IsAmmoEmpty() const {return CurrentBulletNum == 0;}
 	inline int32 GetMagNum() const {return CurrentBulletNum / WeaponAmmoData.BulletNumEachMag;}
+	FString GetBulletsInfo() const;
+	inline FWeaponUIData GetWeaponUIData() const {return  WeaponUIData;};
 private:
 	int32 CurrentBulletNum;
 	int32 CurrentBulletNumInMag;
