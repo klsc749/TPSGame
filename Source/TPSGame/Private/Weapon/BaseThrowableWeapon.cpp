@@ -7,8 +7,9 @@
 ABaseThrowableWeapon::ABaseThrowableWeapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
+	PrimaryActorTick.bCanEverTick = false;
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>("Mesh");
+	SetRootComponent(Mesh);
 }
 
 // Called when the game starts or when spawned
@@ -18,10 +19,4 @@ void ABaseThrowableWeapon::BeginPlay()
 	
 }
 
-// Called every frame
-void ABaseThrowableWeapon::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
 

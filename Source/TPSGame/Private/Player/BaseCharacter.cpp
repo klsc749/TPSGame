@@ -54,6 +54,18 @@ ABaseCharacter::ABaseCharacter()
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>("WeaponComponent");
 }
 
+float ABaseCharacter::GetAOPitch() const
+{
+	float Ao_Pitch = GetBaseAimRotation().Pitch;
+	if(Ao_Pitch > 90.0f && !IsLocallyControlled())
+	{
+		const FVector2D InRange(270.0f, 360.0f);
+		const FVector2D OutRange(-90.0f, .0f);
+		Ao_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, Ao_Pitch);
+	}
+	return Ao_Pitch;
+}
+
 // Called when the game starts or when spawned
 void ABaseCharacter::BeginPlay()
 {
@@ -187,9 +199,12 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	//Reload
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, WeaponComponent, &UWeaponComponent::Reload);
+
+	//Throw
+	PlayerInputComponent->BindAction("Throw", IE_Pressed, WeaponComponent, &UWeaponComponent::BeginThrow);
+	PlayerInputComponent->BindAction("Throw", IE_Released, WeaponComponent, &UWeaponComponent::FinishThrow);
 	PlayerInputComponent->BindAxis("MoveForward", this, &ABaseCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ABaseCharacter::MoveRight);
-	
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.

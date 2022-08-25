@@ -3,7 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "WeaponComponent/WeaponVFXComponent.h"
 #include "BaseProjectile.generated.h"
 
 UCLASS()
@@ -14,13 +17,33 @@ class TPSGAME_API ABaseProjectile : public AActor
 public:	
 	// Sets default values for this actor's properties
 	ABaseProjectile();
-
+	void SetShotDirection(const FVector& Direction){this->ShotDirection = Direction;};
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY(VisibleDefaultsOnly, Category="Weapon")
+	USphereComponent* CollisionComponent;
 
+	UPROPERTY(VisibleDefaultsOnly, Category="Weapon")
+	UProjectileMovementComponent* ProjectileMovementComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Effect")
+	UWeaponVFXComponent* VfxComponent;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Amount")
+	float DamageRadius = 200.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Amount")
+	float DamageAmount = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Amount")
+	bool DoFullDamage = true;
+private:
+	FVector ShotDirection;
+	UFUNCTION()
+	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	AController* GetController() const;
+	
 };

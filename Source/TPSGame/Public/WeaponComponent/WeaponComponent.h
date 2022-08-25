@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/SplineComponent.h"
+#include "Projectile/BaseProjectile.h"
 #include "Weapon/BaseWeapon.h"
 #include "WeaponComponent.generated.h"
 
@@ -32,13 +34,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Weapon")
 	TArray<TSubclassOf<ABaseWeapon>> WeaponClasses;
 
+	UPROPERTY(EditDefaultsOnly, Category="Throw Speed")
+	float ThrowSpeed = 1200.0f;
 	/**Animation**/
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	UAnimMontage* EquipMontageAnim;
 
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	UAnimMontage* ReloadMontageAnim;
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ANimation")
+	UAnimMontage* PreThrow;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ANimation")
+	UAnimMontage* AimIdle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="ANimation")
+	UAnimMontage* ThrowMontage;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="SocketName")
+	FName ThrowSocketName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Spline")
+	USplineComponent* SplineComponent;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Spline")
+	UStaticMesh* SplineMesh;
+	/***Audio****/
 	UPROPERTY(EditDefaultsOnly, Category="Audio")
 	UAudioComponent* AudioComponent;
 
@@ -47,6 +63,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	USoundBase* ChangeMagSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Grenade")
+	TSubclassOf<ABaseProjectile> ProjectileClass;
 	
 	UPROPERTY()
 	AMag* CurrentMag;
@@ -62,7 +81,9 @@ public:
 	void Reload();
 	bool GetWeaponUIData(FWeaponUIData& WeaponUIData) const;
 	FString GetBulletsInfo() const;
-
+	void BeginThrow();
+	void FinishThrow();
+	void OnFinishPreThrow(const USkeletalMeshComponent* Mesh);
 private:
 	void AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent, const FName& SocketName) const;
 	void PlayAnimationMontage(UAnimMontage* Animation);
@@ -70,14 +91,38 @@ private:
 	bool CanEquip() const;
 	bool CanFire() const;
 	bool CanReload() const;
+	bool CanThrow() const;
 	bool CheckIsPlayer(const USkeletalMeshComponent* Mesh) const;
 	void OnEquipFinished(const USkeletalMeshComponent* Mesh);
 	void OnChangeWeapon(const USkeletalMeshComponent* Mesh);
 	void OnReloadFinished(const USkeletalMeshComponent* Mesh);
 	void OnChangeMag(const USkeletalMeshComponent* Mesh);
+	void OnFinishThrow(const USkeletalMeshComponent* Mesh);
 	void SpawnMag();
 	void DestroyMag();
 	void PlaySound(USoundBase* SoundBase) const;
 	bool InEquipProgress = false;
 	bool InReloadProgress = false;
+	bool InThrowProgress = false;
+	FTimerHandle TraceTimerHandle;
+	void MakeTrace();
+	void SpawnGrenade();
+
+public:
+	UFUNCTION(Server, Reliable)
+	void StartFireOnServer();
+	UFUNCTION(NetMulticast, Reliable)
+	void StartFireMulticast();
+	UFUNCTION(Server, Reliable)
+	void EndFireOnServer();
+	UFUNCTION(NetMulticast, Reliable)
+	void EndFireMulticast();
+	UFUNCTION(Server, Reliable)
+	void ReloadOnServer();
+	UFUNCTION(NetMulticast, Reliable)
+	void ReloadMultiCast();
+	UFUNCTION(Server, Reliable)
+	void ChangeWeaponOnServer();
+	UFUNCTION(NetMulticast, Reliable)
+	void ChangeWeaponMulticast();
 };

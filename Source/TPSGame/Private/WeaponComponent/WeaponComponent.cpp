@@ -3,12 +3,20 @@
 
 #include "WeaponComponent/WeaponComponent.h"
 
+#include "DrawDebugHelpers.h"
 #include "AnimNotify/ChangeMagAnimNotify.h"
 #include "AnimNotify/ChangeWeaponAnimNotify.h"
 #include "AnimNotify/EquipFinishAnimNotify.h"
 #include "AnimNotify/ReloadFinishAnimNotify.h"
+#include "AnimNotify/PreThrowFinishAnimNotify.h"
+#include "AnimNotify/ThrowFinishAnimNotify.h"
 #include "Components/AudioComponent.h"
+#include "Components/SplineMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/GameplayStaticsTypes.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Player/BaseCharacter.h"
+#include "Projectile/BaseProjectile.h"
 
 // Sets default values for this component's properties
 UWeaponComponent::UWeaponComponent()
@@ -19,6 +27,7 @@ UWeaponComponent::UWeaponComponent()
 	AudioComponent = CreateDefaultSubobject<UAudioComponent>("ChangeWeapon");
 	AudioComponent->SetAutoActivate(false);
 	AudioComponent->SetComponentTickEnabled(false);
+	SplineComponent = CreateDefaultSubobject<USplineComponent>("SplineComponent");
 	// ...
 }
 
@@ -68,6 +77,45 @@ void UWeaponComponent::SpawnWeapon()
 
 void UWeaponComponent::StartFire()
 {
+	const APawn* Player = Cast<APawn>(GetOwner());
+	if(!Player)
+		return;
+	if (Player->HasAuthority())
+	{
+		StartFireMulticast();
+		UE_LOG(LogTemp, Warning, TEXT("OnServer"))
+	}
+	else
+	{
+		StartFireOnServer();
+		UE_LOG(LogTemp, Warning, TEXT("OnCilent"))
+	}
+}
+
+void UWeaponComponent::StopFire()
+{
+	const APawn* Player = Cast<APawn>(GetOwner());
+	if(!Player)
+		return;
+	if (Player->HasAuthority())
+	{
+		EndFireMulticast();
+		UE_LOG(LogTemp, Warning, TEXT("OnServer"))
+	}
+	else
+	{
+		EndFireOnServer();
+		UE_LOG(LogTemp, Warning, TEXT("OnCilent"))
+	}
+}
+
+void UWeaponComponent::StartFireOnServer_Implementation()
+{
+	StartFireMulticast();
+}
+
+void UWeaponComponent::StartFireMulticast_Implementation()
+{
 	if(!CanFire())
 		return;
 	if(!CurrentWeapon)
@@ -75,7 +123,12 @@ void UWeaponComponent::StartFire()
 	CurrentWeapon->StartFire();
 }
 
-void UWeaponComponent::StopFire()
+void UWeaponComponent::EndFireOnServer_Implementation()
+{
+	EndFireMulticast();
+}
+
+void UWeaponComponent::EndFireMulticast_Implementation()
 {
 	if(!CurrentWeapon)
 		return;
@@ -101,6 +154,26 @@ void UWeaponComponent::EquipWeapon(int32 WeaponIndex)
 
 void UWeaponComponent::NextWeapon()
 {
+	const APawn* Player = Cast<APawn>(GetOwner());
+	if(!Player)
+		return;
+	if (Player->HasAuthority())
+	{
+		ChangeWeaponMulticast();
+	}
+	else
+	{
+		ChangeWeaponOnServer();
+	}
+}
+
+void UWeaponComponent::ChangeWeaponOnServer_Implementation()
+{
+	ChangeWeaponMulticast();
+}
+
+void UWeaponComponent::ChangeWeaponMulticast_Implementation()
+{
 	if(!CanEquip())
 		return;
 	if(!EquipMontageAnim)
@@ -113,6 +186,26 @@ void UWeaponComponent::NextWeapon()
 }
 
 void UWeaponComponent::Reload()
+{
+	const APawn* Player = Cast<APawn>(GetOwner());
+	if(!Player)
+		return;
+	if (Player->HasAuthority())
+	{
+		ReloadMultiCast();
+	}
+	else
+	{
+		ReloadOnServer();
+	}
+}
+
+void UWeaponComponent::ReloadOnServer_Implementation()
+{
+	ReloadMultiCast();
+}
+
+void UWeaponComponent::ReloadMultiCast_Implementation()
 {
 	if(!CanReload())
 		return;
@@ -138,6 +231,34 @@ FString UWeaponComponent::GetBulletsInfo() const
 	if(!CurrentWeapon)
 		return FString("");
 	return CurrentWeapon->GetBulletsInfo();
+}
+
+void UWeaponComponent::BeginThrow()
+{
+	if(!CanThrow())
+		return;
+	InThrowProgress = true;
+	PlayAnimationMontage(PreThrow);
+}
+
+void UWeaponComponent::FinishThrow()
+{
+	if(!InThrowProgress)
+		return;
+	PlayAnimationMontage(ThrowMontage);
+	GetOwner()->GetWorldTimerManager().ClearTimer(TraceTimerHandle);
+	SpawnGrenade();
+}
+
+void UWeaponComponent::OnFinishPreThrow(const USkeletalMeshComponent* Mesh)
+{
+	if(!CheckIsPlayer(Mesh))
+		return;
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if(!Character)
+		return;
+	Character->PlayAnimMontage(AimIdle, 1.0f, "1");
+	GetOwner()->GetWorldTimerManager().SetTimer(TraceTimerHandle, this, &UWeaponComponent::MakeTrace, GetWorld()->DeltaTimeSeconds, true);
 }
 
 void UWeaponComponent::AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent,
@@ -197,7 +318,6 @@ void UWeaponComponent::InitAnimations()
 		UReloadFinishAnimNotify* ReloadFinishAnimNotify = Cast<UReloadFinishAnimNotify>(NotifyEvent.Notify);
 		if(ReloadFinishAnimNotify)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("ReloadFinishAnimNotify %p"), ReloadFinishAnimNotify);
 			ReloadFinishAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnReloadFinished);
 			break;
 		}
@@ -206,10 +326,33 @@ void UWeaponComponent::InitAnimations()
 	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
 	{
 		UChangeMagAnimNotify* ChangeMagAnimNotify = Cast<UChangeMagAnimNotify>(NotifyEvent.Notify);
-		UE_LOG(LogTemp, Warning, TEXT("Bind %p"), ChangeMagAnimNotify);
 		if(ChangeMagAnimNotify)
 		{
 			ChangeMagAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnChangeMag);
+			break;
+		}
+	}
+	if(!PreThrow)
+		return;
+	Notifies = PreThrow->Notifies;
+	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
+	{
+		UPreThrowFinishAnimNotify* PreThrowAnimNotify = Cast<UPreThrowFinishAnimNotify>(NotifyEvent.Notify);
+		if(PreThrowAnimNotify)
+		{
+			PreThrowAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnFinishPreThrow);
+			break;
+		}
+	}
+	if(!ThrowMontage)
+		return;
+	Notifies = ThrowMontage->Notifies;
+	for(const FAnimNotifyEvent& NotifyEvent : Notifies)
+	{
+		UThrowFinishAnimNotify* ThrowFinishAnimNotify = Cast<UThrowFinishAnimNotify>(NotifyEvent.Notify);
+		if(ThrowFinishAnimNotify)
+		{
+			ThrowFinishAnimNotify->OnNotified.AddUObject(this, &UWeaponComponent::OnFinishThrow);
 			break;
 		}
 	}
@@ -227,12 +370,17 @@ bool UWeaponComponent::CanFire() const
 	const ABaseCharacter* Player = Cast<ABaseCharacter>(GetOwner());
 	if(!Player)
 		return false;
-	return CurrentWeapon && !Player->IsSprinting() && !InEquipProgress && !InReloadProgress;
+	return !Player->IsSprinting() && !InEquipProgress && !InReloadProgress && !InThrowProgress;
 }
 
 bool UWeaponComponent::CanReload() const
 {
-	return !InEquipProgress && !InReloadProgress;
+	return !InEquipProgress && !InReloadProgress && !InThrowProgress;
+}
+
+bool UWeaponComponent::CanThrow() const
+{
+	return  !InEquipProgress  && !InReloadProgress && !InThrowProgress;
 }
 
 bool UWeaponComponent::CheckIsPlayer(const USkeletalMeshComponent* Mesh) const
@@ -299,5 +447,76 @@ void UWeaponComponent::OnChangeWeapon(const USkeletalMeshComponent* Mesh)
 		return;
 	PlaySound(ChangeWeaponSound);
 	EquipWeapon(CurrentWeaponIndex);
+}
+
+void UWeaponComponent::OnFinishThrow(const USkeletalMeshComponent* Mesh)
+{
+	if(!CheckIsPlayer(Mesh))
+		return;
+	InThrowProgress = false;
+}
+
+
+void UWeaponComponent::MakeTrace()
+{
+	if(!GetWorld())
+		return;
+	const ABaseCharacter* Player = Cast<ABaseCharacter>(GetOwner());
+	if(!Player)
+		return;
+	FVector StartLocation;
+	FRotator SocketRotator;
+	Player->GetMesh()->GetSocketWorldLocationAndRotation(ThrowSocketName, StartLocation, SocketRotator);
+	FPredictProjectilePathParams PredictProjectilePathParams;
+	PredictProjectilePathParams.StartLocation = StartLocation;
+	FVector Offset(0, 0, 0.5f);
+	PredictProjectilePathParams.LaunchVelocity = (UKismetMathLibrary::GetForwardVector(Player->GetControlRotation()) + Offset) * ThrowSpeed;
+	TArray<AActor*> ActorToIgnore;
+	ActorToIgnore.Add(GetOwner());
+	PredictProjectilePathParams.ActorsToIgnore = ActorToIgnore;
+	FPredictProjectilePathResult ProjectilePathResult;
+	
+	UGameplayStatics::PredictProjectilePath(GetWorld(), PredictProjectilePathParams, ProjectilePathResult);
+
+	for (const auto point : ProjectilePathResult.PathData)
+	{
+		DrawDebugPoint(GetWorld(), point.Location, 5.0f, FColor::Green, false, GetWorld()->DeltaTimeSeconds);
+	}
+	/*int PointNum = ProjectilePathResult.PathData.Num();
+	for(int i = 0; i <  PointNum; i++)
+	{
+		SplineComponent->AddSplinePointAtIndex(ProjectilePathResult.PathData[i].Location, i, ESplineCoordinateSpace::Local);
+	}
+	for(int i = 0; i < PointNum - 1; i++)
+	{
+		USplineMeshComponent* SplineMeshComponent = NewObject<USplineMeshComponent>(GetOwner(), USplineMeshComponent::StaticClass());
+		SplineMeshComponent->SetStaticMesh(SplineMesh);
+		const FVector StartPoint = SplineComponent->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local);
+		const FVector EndPoint = SplineComponent->GetLocationAtSplinePoint(i + 1, ESplineCoordinateSpace::Local);
+		const FVector StartTangent = SplineComponent->GetTangentAtSplinePoint(i, ESplineCoordinateSpace::Local);
+		const FVector EndTangent = SplineComponent->GetTangentAtSplinePoint(i + 1, ESplineCoordinateSpace::Local);
+
+		SplineMeshComponent->SetStartAndEnd(StartPoint, StartTangent, EndPoint, EndTangent);
+		SplineMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}*/
+}
+
+void UWeaponComponent::SpawnGrenade()
+{
+	if(!GetWorld())
+		return;
+	ABaseCharacter* Player = Cast<ABaseCharacter>(GetOwner());
+	if(!Player)
+		return;
+	auto Projectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(ProjectileClass, Player->GetMesh()->GetSocketTransform(ThrowSocketName));
+	if(!Projectile)
+		return;
+	//set projectile params
+	Projectile->SetOwner(GetOwner());
+	const FVector Offset(0, 0, 0.5f);
+	Projectile->SetShotDirection(UKismetMathLibrary::GetForwardVector(Player->GetControlRotation()) + Offset);
+	DrawDebugLine(GetWorld(), Player->GetMesh()->GetSocketTransform(ThrowSocketName).GetLocation(),
+		Player->GetMesh()->GetSocketTransform(ThrowSocketName).GetLocation() + 600 * (UKismetMathLibrary::GetForwardVector(Player->GetControlRotation()) + Offset), FColor::Red, false, 3.0);
+	UGameplayStatics::FinishSpawningActor(Projectile, Player->GetMesh()->GetSocketTransform(ThrowSocketName));
 }
 

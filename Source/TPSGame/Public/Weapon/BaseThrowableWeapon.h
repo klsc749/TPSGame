@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "BaseThrowableWeapon.generated.h"
 
 UCLASS()
@@ -16,11 +17,11 @@ public:
 	ABaseThrowableWeapon();
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="MeshComponent");
+	USkeletalMeshComponent* Mesh;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movemeent")
+	UProjectileMovementComponent* MovementComponent;
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 };

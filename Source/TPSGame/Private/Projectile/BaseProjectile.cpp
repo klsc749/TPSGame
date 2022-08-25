@@ -3,25 +3,58 @@
 
 #include "Projectile/BaseProjectile.h"
 
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
+#include "Math/UnitConversion.h"
+
 // Sets default values
 ABaseProjectile::ABaseProjectile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = false;
 
+	CollisionComponent = CreateDefaultSubobject<USphereComponent>("CollisionComponent");
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionComponent->SetCollisionResponseToChannels(ECollisionResponse::ECR_Block);
+	CollisionComponent->IgnoreActorWhenMoving(GetOwner(), true);
+	CollisionComponent->InitSphereRadius(5.0f);
+	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovementComponent");
+	ProjectileMovementComponent->InitialSpeed = 2000.f;
+	ProjectileMovementComponent->ProjectileGravityScale = 0;
+	VfxComponent = CreateDefaultSubobject<UWeaponVFXComponent>("WeaponVFXComponent");
+	SetRootComponent(CollisionComponent);
 }
+
 
 // Called when the game starts or when spawned
 void ABaseProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	check(CollisionComponent);
+	check(ProjectileMovementComponent);
+
+	ProjectileMovementComponent->Velocity = ShotDirection * ProjectileMovementComponent->InitialSpeed;
+	CollisionComponent->OnComponentHit.AddDynamic(this, &ABaseProjectile::OnProjectileHit);
+	SetLifeSpan(5.0f);
 }
 
-// Called every frame
-void ABaseProjectile::Tick(float DeltaTime)
+void ABaseProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	Super::Tick(DeltaTime);
-
+	if(!GetWorld())
+		return;
+	ProjectileMovementComponent->StopMovementImmediately();
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, GetActorLocation(), DamageRadius, UDamageType::StaticClass(),
+		{GetOwner()}, this, GetController(), DoFullDamage);
+	DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 24, FColor::Cyan, false, 5.0f);
+	VfxComponent->PlayFXImpact(Hit);
+	Destroy();
 }
+
+AController* ABaseProjectile::GetController() const
+{
+	const auto Pawn = Cast<APawn>(GetOwner());
+	return Pawn ? Pawn->GetController() : nullptr;
+}
+
 

@@ -55,7 +55,6 @@ protected:
 	void OnTakeAnyDamageHandle(AActor* DamageActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 	void HealUpdate();
-	
 private:
 	float Health = 0.0f;
 	FTimerHandle HealTimerHandle;

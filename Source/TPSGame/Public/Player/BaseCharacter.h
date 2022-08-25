@@ -19,7 +19,6 @@ class TPSGAME_API ABaseCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	ABaseCharacter();
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -30,6 +29,8 @@ protected:
 	//Spring arm
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Camera")
 	USpringArmComponent* SpringArmComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Component")
+	UWeaponComponent* WeaponComponent;
 	//Health component
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component")
 	UHealthComponent* HealthComponent;
@@ -39,9 +40,6 @@ protected:
 	//Death animation
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	UAnimMontage* DeathMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category="Component")
-	UWeaponComponent* WeaponComponent;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Sprint")
 	float BaseSpeed = 600.0f;
@@ -74,13 +72,16 @@ protected:
 	void BeginCrouch();
 
 	void EndCrouch();
-
+	
 	void BeginFire();
 
 	void EndFire();
 
 	UFUNCTION(BlueprintCallable)
 	bool IsRunning() const;
+	
+	UFUNCTION(BlueprintCallable)
+	float GetAOPitch() const;
 	
 public:	
 	// Called every frame
