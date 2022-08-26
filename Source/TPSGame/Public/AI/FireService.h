@@ -16,4 +16,6 @@ class TPSGAME_API UFireService : public UBTService
 public:
 	UFireService();
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
+	FName FocusOnKeyName = "EnemyActor";
 };

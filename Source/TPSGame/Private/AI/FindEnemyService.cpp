@@ -4,6 +4,8 @@
 #include "AI/FindEnemyService.h"
 
 #include "AIController.h"
+#include "AI/AICharacter.h"
+#include "AI/AIWeaponComponent.h"
 #include "AI/TPSAIPerceptionComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
@@ -22,6 +24,15 @@ void UFindEnemyService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 		if(AIPerceptionComponent)
 		{
 			Blackboard->SetValueAsObject(EnemyActorKey.SelectedKeyName, AIPerceptionComponent->GetClosestEnemy());
+			if(!AIPerceptionComponent->GetClosestEnemy())
+			{
+				AAICharacter* AICharacter = Cast<AAICharacter>(Controller->GetPawn());
+				if(!AICharacter)
+					return;
+				const auto UaiWeaponComponent = Cast<UAIWeaponComponent>(AICharacter->GetComponentByClass(UAIWeaponComponent::StaticClass()));	
+				if(UaiWeaponComponent)
+					UaiWeaponComponent->StopFire();
+			}
 		}
 	}
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);

@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "AI/AICharacter.h"
 #include "AI/AIWeaponComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 UFireService::UFireService()
 {

@@ -3,9 +3,6 @@
 
 #include "UI/PlayerHudWidget.h"
 
-#include "HealthComponent/HealthComponent.h"
-#include "WeaponComponent/WeaponComponent.h"
-
 FString UPlayerHudWidget::GetBulletsInfo() const
 {
 	const auto Player = GetOwningPlayerPawn();
@@ -40,4 +37,36 @@ bool UPlayerHudWidget::GetWeaponUIData(FWeaponUIData& WeaponUIData) const
 	if(!WeaponComponent)
 		return  false;
 	return WeaponComponent->GetWeaponUIData(WeaponUIData);
+}
+
+bool UPlayerHudWidget::IsPlayerAlive() const
+{
+	const auto HealthComponent = GetHealthComponent();
+	return HealthComponent && !HealthComponent->IsDead();
+}
+
+bool UPlayerHudWidget::IsPlayerSpectating() const
+{
+	const auto Controller = GetOwningPlayer();
+	return Controller && Controller->GetStateName() == NAME_Spectating;
+}
+
+UHealthComponent* UPlayerHudWidget::GetHealthComponent() const
+{
+	const auto Player = GetOwningPlayerPawn();
+	if(!Player)
+		return nullptr;
+	const auto Component = Player->GetComponentByClass(UHealthComponent::StaticClass());
+	const auto HealthComponent = Cast<UHealthComponent>(Component);
+	return HealthComponent;
+}
+
+UWeaponComponent* UPlayerHudWidget::GetWeaponComponent() const
+{
+	const auto Player = GetOwningPlayerPawn();
+	if(!Player)
+		return nullptr;
+	const auto Component = Player->GetComponentByClass(UWeaponComponent::StaticClass());
+	const auto WeaponComponent = Cast<UWeaponComponent>(Component);
+	return WeaponComponent;
 }

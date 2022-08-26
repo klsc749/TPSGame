@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Weapon/BaseWeapon.h"
+#include "HealthComponent/HealthComponent.h"
+#include "WeaponComponent/WeaponComponent.h"
 #include "PlayerHudWidget.generated.h"
 
 /**
@@ -23,4 +25,11 @@ public:
 	bool GetWeaponUIData(FWeaponUIData& WeaponUIData) const;
 	UPROPERTY(BlueprintReadWrite,meta=(BindWidget))
 	class UProgressBar* HealthBar;
+	UFUNCTION(BlueprintCallable, Category="UI")
+	bool IsPlayerAlive() const;
+	UFUNCTION(BlueprintCallable, Category="UI")
+	bool IsPlayerSpectating() const;
+private:
+	UHealthComponent* GetHealthComponent() const;
+	UWeaponComponent* GetWeaponComponent() const;
 };
