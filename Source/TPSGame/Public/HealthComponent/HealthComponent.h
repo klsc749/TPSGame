@@ -37,8 +37,11 @@ public:
 	
 	UFUNCTION(Server, Reliable)
 	void TakeDamageHandleOnServer(float Damage);
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(NetMulticast, Reliable)
 	void TakeDamageHandleMulticast(float Damage);
+
+	/*void PlayCameraShakeOnServer();
+	void PlayCameraShakeMulticast();*/
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -58,6 +61,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BluePrintReadWrite, Category = "Heal", meta = (EditCondition = "AutoHeal"))
 	float HealModifier = 5.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="VFX")
+	TSubclassOf<UCameraShakeBase> CameraShakeClass;
+
 	UFUNCTION()
 	void OnTakeAnyDamageHandle(AActor* DamageActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
@@ -66,4 +72,5 @@ protected:
 private:
 	float Health = 0.0f;
 	FTimerHandle HealTimerHandle;
+	void PlayCameraShake();
 };

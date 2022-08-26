@@ -56,6 +56,21 @@ void UHealthComponent::HealUpdate()
 	}
 }
 
+void UHealthComponent::PlayCameraShake()
+{
+	if(IsDead())
+		return;;
+	const auto Player = Cast<APawn>(GetOwner());
+	if(!Player)
+		return;
+	const auto Controller = Player->GetController<ATPSPlayerController>();
+	if(!Controller || !Controller->PlayerCameraManager)
+		return;;
+
+	Controller->PlayerCameraManager->StartCameraShake(CameraShakeClass);
+		
+}
+
 void UHealthComponent::TakeDamageHandleOnServer_Implementation(float Damage)
 {
 	TakeDamageHandleOnServer(Damage);
@@ -76,6 +91,7 @@ void UHealthComponent::TakeDamageHandleMulticast_Implementation(float Damage)
 	{
 		GetWorld()->GetTimerManager().SetTimer(HealTimerHandle, this, &UHealthComponent::HealUpdate, HealUpdateTime, true, HealDelay);
 	}
+	PlayCameraShake();
 }
 
 // Called when the game starts
