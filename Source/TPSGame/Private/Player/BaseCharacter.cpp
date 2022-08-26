@@ -3,8 +3,12 @@
 
 #include "Player/BaseCharacter.h"
 
+#include "GameplayDebuggerTypes.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Player/TPSPlayerController.h"
+#include "Components/AudioComponent.h"
+#include "UI/BaseGameHUD.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -49,7 +53,64 @@ ABaseCharacter::ABaseCharacter()
 	HealthTextComponent = CreateDefaultSubobject<UTextRenderComponent>("HealthReaderComponent");
 	HealthTextComponent->SetupAttachment(RootComponent);
 	HealthTextComponent->SetOwnerNoSee(false);
+	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), HealthComponent->GetMaxHealth())));
 
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("ChangeWeapon");
+	AudioComponent->SetAutoActivate(false);
+	AudioComponent->SetComponentTickEnabled(false);
+	
+	//Create Weapon Component
+	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>("WeaponComponent");
+}
+
+ABaseCharacter::ABaseCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+	// Set size for collision capsule
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+
+	// set our turn rates for input
+	BaseTurnRate = 45.f;
+	BaseLookUpRate = 45.f;
+
+	// Don't rotate when the controller rotates. Let that just affect the camera.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+	
+	// Configure character movement
+	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
+	GetCharacterMovement()->JumpZVelocity = 300.f;
+	GetCharacterMovement()->AirControl = 0.0f;
+
+	// Create a camera boom (pulls in towards the player if there is a collision)
+	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	SpringArmComponent->SetupAttachment(RootComponent);
+	SpringArmComponent->TargetArmLength = 300.0f; // The camera follows at this distance behind the character	
+	SpringArmComponent->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+
+	// Create a follow camera
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	CameraComponent->SetupAttachment(SpringArmComponent, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	CameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	//Create health component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComponent");
+	HealthComponent->OnDeath.AddUObject(this, &ABaseCharacter::OnDeath);
+	HealthComponent->OnHealthChange.AddUObject(this, &ABaseCharacter::OnHealthChange);
+	
+	//Create health text component
+	HealthTextComponent = CreateDefaultSubobject<UTextRenderComponent>("HealthReaderComponent");
+	HealthTextComponent->SetupAttachment(RootComponent);
+	HealthTextComponent->SetOwnerNoSee(false);
+	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), HealthComponent->GetMaxHealth())));
+
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("ChangeWeapon");
+	AudioComponent->SetAutoActivate(false);
+	AudioComponent->SetComponentTickEnabled(false);
+	
 	//Create Weapon Component
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>("WeaponComponent");
 }
@@ -70,7 +131,7 @@ float ABaseCharacter::GetAOPitch() const
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	 TPSPlayerController = Cast<ATPSPlayerController>(GetController());
 }
 
 void ABaseCharacter::MoveForward(float Value)
@@ -153,6 +214,21 @@ bool ABaseCharacter::IsRunning() const
 	return Velocity.Size() > 0;
 }
 
+void ABaseCharacter::OnHealthChangeOnServer_Implementation(float Health)
+{
+	OnHealthChangeMulticast(Health);
+}
+
+void ABaseCharacter::OnHealthChangeMulticast_Implementation(float Health)
+{
+	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), Health)));
+	TPSPlayerController = Cast<ATPSPlayerController>(GetController());
+	if(!TPSPlayerController)
+		return;
+	UE_LOG(LogTemp, Warning, TEXT("SetPersent1"));
+	TPSPlayerController->SetHealth(HealthComponent->GetHealthPercent());
+}
+
 void ABaseCharacter::OnDeath()
 {
 	PlayAnimMontage(DeathMontage);
@@ -165,9 +241,16 @@ void ABaseCharacter::OnDeath()
 	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 }
 
-void ABaseCharacter::OnHealthChange(float Health) const
+void ABaseCharacter::OnHealthChange(float Health)
 {
-	HealthTextComponent->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), Health)));
+	if(HasAuthority())
+	{
+		OnHealthChangeMulticast(Health);
+	}
+	else
+	{
+		OnHealthChangeOnServer(Health);
+	}
 }
 
 // Called every frame

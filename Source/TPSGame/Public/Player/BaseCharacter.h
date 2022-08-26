@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TPSPlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -19,6 +20,9 @@ class TPSGAME_API ABaseCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	ABaseCharacter();
+	ABaseCharacter(const FObjectInitializer& ObjectInitializer );
+	UPROPERTY(EditDefaultsOnly, Category="Audio")
+	UAudioComponent* AudioComponent;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -37,6 +41,7 @@ protected:
 	//the text of health
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component")
 	UTextRenderComponent* HealthTextComponent;
+	
 	//Death animation
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	UAnimMontage* DeathMontage;
@@ -104,8 +109,16 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return CameraComponent; }
 
 	bool IsSprinting() const {return IsSprint;}
+
+	UFUNCTION(Server, Reliable)
+	void OnHealthChangeOnServer(float Health);
+	UFUNCTION(NetMulticast, Reliable)
+	void OnHealthChangeMulticast(float Health);
 private:
+	UPROPERTY()
+	ATPSPlayerController* TPSPlayerController;
 	bool IsSprint = false;
 	void OnDeath();
-	void OnHealthChange(float Health) const;	
+	void OnHealthChange(float Health);
+	
 };

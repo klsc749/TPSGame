@@ -50,6 +50,10 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	void PlayFXImpact(const FHitResult& HitResult) const;
-		
+	void PlayFXImpact(const FHitResult& HitResult);
+
+	UFUNCTION(Server, Reliable)
+	void PlayFXImpactOnServer(const FHitResult& HitResult);
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayFXImpactMulticast(const FHitResult& HitResult);
 };

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "PlayerHudWidget.h"
 #include "GameFramework/HUD.h"
 #include "BaseGameHUD.generated.h"
 
@@ -18,6 +19,8 @@ protected:
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 	
 public:
+	UPROPERTY()
+	UPlayerHudWidget* PlayerHudWidget;
 	virtual void DrawHUD() override;
 	virtual void BeginPlay() override;
 private:

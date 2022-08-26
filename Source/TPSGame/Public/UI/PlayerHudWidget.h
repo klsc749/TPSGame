@@ -13,6 +13,7 @@
 UCLASS()
 class TPSGAME_API UPlayerHudWidget : public UUserWidget
 {
+public:
 	GENERATED_BODY()
 	UFUNCTION(BlueprintCallable, Category="Bullets")
 	FString GetBulletsInfo() const;
@@ -20,4 +21,6 @@ class TPSGAME_API UPlayerHudWidget : public UUserWidget
 	float GetHealthPercent() const;
 	UFUNCTION(BlueprintCallable, Category="WeaponUI")
 	bool GetWeaponUIData(FWeaponUIData& WeaponUIData) const;
+	UPROPERTY(BlueprintReadWrite,meta=(BindWidget))
+	class UProgressBar* HealthBar;
 };

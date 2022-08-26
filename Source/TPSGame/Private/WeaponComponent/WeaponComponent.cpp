@@ -11,7 +11,6 @@
 #include "AnimNotify/PreThrowFinishAnimNotify.h"
 #include "AnimNotify/ThrowFinishAnimNotify.h"
 #include "Components/AudioComponent.h"
-#include "Components/SplineMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/GameplayStaticsTypes.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -24,10 +23,6 @@ UWeaponComponent::UWeaponComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-	AudioComponent = CreateDefaultSubobject<UAudioComponent>("ChangeWeapon");
-	AudioComponent->SetAutoActivate(false);
-	AudioComponent->SetComponentTickEnabled(false);
-	SplineComponent = CreateDefaultSubobject<USplineComponent>("SplineComponent");
 	// ...
 }
 
@@ -83,12 +78,10 @@ void UWeaponComponent::StartFire()
 	if (Player->HasAuthority())
 	{
 		StartFireMulticast();
-		UE_LOG(LogTemp, Warning, TEXT("OnServer"))
 	}
 	else
 	{
 		StartFireOnServer();
-		UE_LOG(LogTemp, Warning, TEXT("OnCilent"))
 	}
 }
 
@@ -100,12 +93,10 @@ void UWeaponComponent::StopFire()
 	if (Player->HasAuthority())
 	{
 		EndFireMulticast();
-		UE_LOG(LogTemp, Warning, TEXT("OnServer"))
 	}
 	else
 	{
 		EndFireOnServer();
-		UE_LOG(LogTemp, Warning, TEXT("OnCilent"))
 	}
 }
 
@@ -280,6 +271,10 @@ void UWeaponComponent::PlayAnimationMontage(UAnimMontage* Animation)
 
 void UWeaponComponent::PlaySound(USoundBase* SoundBase) const
 {
+	ABaseCharacter* PLayer = Cast<ABaseCharacter>(GetOwner());
+	if(!PLayer)
+		return;
+	UAudioComponent* AudioComponent = PLayer->AudioComponent;
 	if(!AudioComponent && !SoundBase)
 		return;
 	AudioComponent->Sound = SoundBase;
@@ -370,7 +365,7 @@ bool UWeaponComponent::CanFire() const
 	const ABaseCharacter* Player = Cast<ABaseCharacter>(GetOwner());
 	if(!Player)
 		return false;
-	return !Player->IsSprinting() && !InEquipProgress && !InReloadProgress && !InThrowProgress;
+	return !Player->IsSprinting() && !InEquipProgress && !InReloadProgress && !InThrowProgress && !CurrentWeapon->IsMagEmpty();
 }
 
 bool UWeaponComponent::CanReload() const
@@ -474,6 +469,7 @@ void UWeaponComponent::MakeTrace()
 	TArray<AActor*> ActorToIgnore;
 	ActorToIgnore.Add(GetOwner());
 	PredictProjectilePathParams.ActorsToIgnore = ActorToIgnore;
+	PredictProjectilePathParams.OverrideGravityZ = 1.0f;
 	FPredictProjectilePathResult ProjectilePathResult;
 	
 	UGameplayStatics::PredictProjectilePath(GetWorld(), PredictProjectilePathParams, ProjectilePathResult);

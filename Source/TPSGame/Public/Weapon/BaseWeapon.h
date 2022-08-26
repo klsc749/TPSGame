@@ -110,6 +110,7 @@ public:
 	void ReloadBullet();
 	inline TSubclassOf<AMag> GetMagClass() const {return Mag;}
 	inline bool IsAmmoEmpty() const {return CurrentBulletNum == 0;}
+	inline bool IsMagEmpty() const {return CurrentBulletNumInMag == 0;}
 	inline int32 GetMagNum() const {return CurrentBulletNum / WeaponAmmoData.BulletNumEachMag;}
 	FString GetBulletsInfo() const;
 	inline FWeaponUIData GetWeaponUIData() const {return  WeaponUIData;};

@@ -35,7 +35,16 @@ void ARifleWeapon::Shot()
 	MakeHit(HitResult, TraceStart, TraceEnd);
 	if(HitResult.bBlockingHit){
 		WeaponVfxComponent->PlayFXImpact(HitResult);
-		MakeDamage(HitResult);
+		if(!GetOwner())
+			return;
+		if(GetOwner()->HasAuthority())
+		{
+			MakeDamageMulticast(HitResult);
+		}
+		else
+		{
+			MakeDamageOnServer(HitResult);
+		}
 	}
 	PlaySound(ShotSound);
 	DecreaseCurrentBulletNumInMag();
@@ -51,6 +60,16 @@ void ARifleWeapon::StartFire()
 void ARifleWeapon::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(ShotTimerHandle);
+}
+
+void ARifleWeapon::MakeDamageOnServer_Implementation(const FHitResult& HitResult)
+{
+	MakeDamageOnServer(HitResult);
+}
+
+void ARifleWeapon::MakeDamageMulticast_Implementation(const FHitResult& HitResult)
+{
+	MakeDamage(HitResult);
 }
 
 void ARifleWeapon::MakeDamage(const FHitResult& HitResult)

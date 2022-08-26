@@ -26,7 +26,26 @@ void UWeaponVFXComponent::BeginPlay()
 	
 }
 
-void UWeaponVFXComponent::PlayFXImpact(const FHitResult& HitResult) const
+void UWeaponVFXComponent::PlayFXImpact(const FHitResult& HitResult)
+{
+	if(!GetOwner())
+		return;
+	if(GetOwner()->HasAuthority())
+	{
+		PlayFXImpactMulticast(HitResult);
+	}
+	else
+	{
+		PlayFXImpactOnServer(HitResult);
+	}
+}
+
+void UWeaponVFXComponent::PlayFXImpactOnServer_Implementation(const FHitResult& HitResult)
+{
+	PlayFXImpactMulticast(HitResult);
+}
+
+void UWeaponVFXComponent::PlayFXImpactMulticast_Implementation(const FHitResult& HitResult)
 {
 	if(!GetWorld())
 		return;

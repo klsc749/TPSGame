@@ -3,13 +3,15 @@
 
 #include "HealthComponent/HealthComponent.h"
 
+#include "Player/TPSPlayerController.h"
+
 // Sets default values for this component's properties
 UHealthComponent::UHealthComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
+	SetIsReplicated(true);
 	// ...
 }
 
@@ -31,15 +33,15 @@ void UHealthComponent::OnTakeAnyDamageHandle(AActor* DamageActor, float Damage, 
 	{
 		return;
 	}
-	ChangeHealth(-Damage);
-
-	GetWorld()->GetTimerManager().ClearTimer(HealTimerHandle);
-	if(IsDead())
+	const APawn* Player = Cast<APawn>(GetOwner());
+	if(!Player)
+		return;
+	if(Player->HasAuthority())
 	{
-		OnDeath.Broadcast();
+		TakeDamageHandleMulticast(Damage);
 	}else
 	{
-		GetWorld()->GetTimerManager().SetTimer(HealTimerHandle, this, &UHealthComponent::HealUpdate, HealUpdateTime, true, HealDelay);
+		TakeDamageHandleOnServer(Damage);
 	}
 }
 
@@ -54,6 +56,27 @@ void UHealthComponent::HealUpdate()
 	}
 }
 
+void UHealthComponent::TakeDamageHandleOnServer_Implementation(float Damage)
+{
+	TakeDamageHandleOnServer(Damage);
+}
+
+void UHealthComponent::TakeDamageHandleMulticast_Implementation(float Damage)
+{
+	if(Damage < 0 || IsDead() || !GetWorld())
+	{
+		return;
+	}
+	ChangeHealth(-Damage);
+	GetWorld()->GetTimerManager().ClearTimer(HealTimerHandle);
+	if(IsDead())
+	{
+		OnDeath.Broadcast();
+	}else
+	{
+		GetWorld()->GetTimerManager().SetTimer(HealTimerHandle, this, &UHealthComponent::HealUpdate, HealUpdateTime, true, HealDelay);
+	}
+}
 
 // Called when the game starts
 void UHealthComponent::BeginPlay()

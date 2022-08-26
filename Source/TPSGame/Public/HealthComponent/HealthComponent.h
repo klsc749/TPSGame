@@ -24,6 +24,8 @@ public:
 
 	void ChangeHealth(float HealthChange);
 
+	float GetMaxHealth() const {return MaxHealth;}
+
 	UFUNCTION(BlueprintCallable)
 	bool IsDead() const {return Health <= 0.0f;}
 
@@ -32,6 +34,11 @@ public:
 	FOnDeath OnDeath;
 
 	FOnHealthChange OnHealthChange;
+	
+	UFUNCTION(Server, Reliable)
+	void TakeDamageHandleOnServer(float Damage);
+	UFUNCTION(Server, Reliable)
+	void TakeDamageHandleMulticast(float Damage);
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -55,6 +62,7 @@ protected:
 	void OnTakeAnyDamageHandle(AActor* DamageActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 	void HealUpdate();
+	
 private:
 	float Health = 0.0f;
 	FTimerHandle HealTimerHandle;

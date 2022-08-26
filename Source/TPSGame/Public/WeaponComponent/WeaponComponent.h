@@ -50,13 +50,7 @@ protected:
 	UAnimMontage* ThrowMontage;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="SocketName")
 	FName ThrowSocketName;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Spline")
-	USplineComponent* SplineComponent;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Spline")
-	UStaticMesh* SplineMesh;
 	/***Audio****/
-	UPROPERTY(EditDefaultsOnly, Category="Audio")
-	UAudioComponent* AudioComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	USoundBase* ChangeWeaponSound;
@@ -74,23 +68,26 @@ protected:
 	
 public:	
 	void SpawnWeapon();
-	void StartFire();
+	virtual void StartFire();
 	void StopFire();
 	void EquipWeapon(int32 WeaponIndex);
-	void NextWeapon();
+	virtual void NextWeapon();
 	void Reload();
 	bool GetWeaponUIData(FWeaponUIData& WeaponUIData) const;
 	FString GetBulletsInfo() const;
 	void BeginThrow();
 	void FinishThrow();
 	void OnFinishPreThrow(const USkeletalMeshComponent* Mesh);
-private:
-	void AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent, const FName& SocketName) const;
-	void PlayAnimationMontage(UAnimMontage* Animation);
-	void InitAnimations();
+
+protected:
 	bool CanEquip() const;
 	bool CanFire() const;
 	bool CanReload() const;
+	void PlayAnimationMontage(UAnimMontage* Animation);
+private:
+	void AttachActorToSocket(AActor* Actor, USceneComponent* SceneComponent, const FName& SocketName) const;
+
+	void InitAnimations();
 	bool CanThrow() const;
 	bool CheckIsPlayer(const USkeletalMeshComponent* Mesh) const;
 	void OnEquipFinished(const USkeletalMeshComponent* Mesh);

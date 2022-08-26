@@ -28,6 +28,10 @@ protected:
 	virtual void Shot() override;
 	virtual void StartFire() override;
 	virtual void StopFire() override;
+	UFUNCTION(Server, Reliable)
+	void MakeDamageOnServer(const FHitResult& HitResult);
+	UFUNCTION(NetMulticast, Reliable)
+	void MakeDamageMulticast(const FHitResult& HitResult);
 private:
 	void MakeDamage(const FHitResult& HitResult);
 	void PlayAnimation(UAnimMontage* FireAnimation);
