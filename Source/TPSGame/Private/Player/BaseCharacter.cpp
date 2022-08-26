@@ -225,11 +225,15 @@ void ABaseCharacter::OnHealthChangeMulticast_Implementation(float Health)
 	TPSPlayerController = Cast<ATPSPlayerController>(GetController());
 	if(!TPSPlayerController)
 		return;
-	UE_LOG(LogTemp, Warning, TEXT("SetPersent1"));
 	TPSPlayerController->SetHealth(HealthComponent->GetHealthPercent());
 }
 
-void ABaseCharacter::OnDeath()
+void ABaseCharacter::OnDeathServer_Implementation()
+{
+	OnDeathMulticast();
+}
+
+void ABaseCharacter::OnDeathMulticast_Implementation()
 {
 	PlayAnimMontage(DeathMontage);
 	GetCharacterMovement()->DisableMovement();
@@ -239,6 +243,18 @@ void ABaseCharacter::OnDeath()
 		Controller->ChangeState(NAME_Spectating);
 	}
 	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+}
+
+void ABaseCharacter::OnDeath()
+{
+	if(HasAuthority())
+	{
+		OnDeathMulticast();
+	}
+	else
+	{
+		OnDeathServer();
+	}
 }
 
 void ABaseCharacter::OnHealthChange(float Health)

@@ -114,6 +114,10 @@ public:
 	void OnHealthChangeOnServer(float Health);
 	UFUNCTION(NetMulticast, Reliable)
 	void OnHealthChangeMulticast(float Health);
+	UFUNCTION(Server, Reliable)
+	void OnDeathServer();
+	UFUNCTION(NetMulticast, Reliable)
+	void OnDeathMulticast();
 private:
 	UPROPERTY()
 	ATPSPlayerController* TPSPlayerController;

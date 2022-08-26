@@ -10,7 +10,6 @@
 void ABaseGameHUD::DrawHUD()
 {
 	Super::DrawHUD();
-	DrawCrossHair();
 }
 
 void ABaseGameHUD::BeginPlay()
