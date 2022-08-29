@@ -469,7 +469,7 @@ void UWeaponComponent::MakeTrace()
 	TArray<AActor*> ActorToIgnore;
 	ActorToIgnore.Add(GetOwner());
 	PredictProjectilePathParams.ActorsToIgnore = ActorToIgnore;
-	PredictProjectilePathParams.OverrideGravityZ = 1.0f;
+	PredictProjectilePathParams.OverrideGravityZ = 10.0f;
 	FPredictProjectilePathResult ProjectilePathResult;
 	
 	UGameplayStatics::PredictProjectilePath(GetWorld(), PredictProjectilePathParams, ProjectilePathResult);
