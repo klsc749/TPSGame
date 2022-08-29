@@ -78,7 +78,7 @@ void ARifleWeapon::MakeDamage(const FHitResult& HitResult)
 	if(!DamageActor)
 		return;
 
-	DamageActor->TakeDamage(DamageAmount, FDamageEvent{}, GetPlayerController(), this);
+	DamageActor->TakeDamage(DamageAmount, FDamageEvent{}, GetPlayerController(), GetOwner());
 }
 
 void ARifleWeapon::PlayAnimation(UAnimMontage* FireAnimation)

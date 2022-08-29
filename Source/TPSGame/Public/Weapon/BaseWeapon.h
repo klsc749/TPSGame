@@ -104,8 +104,17 @@ public:
 	inline  USkeletalMeshComponent* GetWeaponMesh() const {return WeaponMesh;}
 	virtual bool GetTraceData(FVector& TraceStart, FVector& TraceEnd) const;
 	virtual void MakeHit(FHitResult& HitResult, const FVector& TraceStart, const FVector& TraceEnd) const;
-	void HideMag() const;
-	void UnHideMag() const;
+	void HideMag();
+	void UnHideMag();
+
+	UFUNCTION(Server, Unreliable)
+	void HideMagOnServer();
+	UFUNCTION(NetMulticast, Unreliable)
+	void HideMagMulticast();
+	UFUNCTION(Server, Unreliable)
+	void UnHideMagOnServer();
+	UFUNCTION(NetMulticast, Unreliable)
+	void UnHideMagMulticast();
 	void Reload();
 	void ReloadBullet();
 	inline TSubclassOf<AMag> GetMagClass() const {return Mag;}

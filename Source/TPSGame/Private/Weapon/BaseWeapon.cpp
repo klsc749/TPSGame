@@ -192,12 +192,53 @@ void ABaseWeapon::MakeHit(FHitResult& HitResult, const FVector& TraceStart, cons
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, CollisionQueryParams);
 }
 
-void ABaseWeapon::HideMag() const
+void ABaseWeapon::HideMag()
+{
+	const AController* PlayerController= GetPlayerController();
+	if(!PlayerController)
+		return;
+	if(PlayerController->HasAuthority())
+	{
+		HideMagMulticast();
+	}
+	else
+	{
+		HideMagOnServer();
+	}
+}
+
+void ABaseWeapon::UnHideMag()
+{
+	GetWeaponMesh()->HideBoneByName(MagBoneName, EPhysBodyOp::PBO_None);
+	const AController* PlayerController= GetPlayerController();
+	if(!PlayerController)
+		return;
+	if(PlayerController->HasAuthority())
+	{
+		UnHideMagMulticast();
+	}
+	else
+	{
+		UnHideMagOnServer();
+	}
+}
+
+void ABaseWeapon::HideMagOnServer_Implementation()
+{
+	HideMagMulticast();
+}
+
+void ABaseWeapon::HideMagMulticast_Implementation()
 {
 	GetWeaponMesh()->UnHideBoneByName(MagBoneName);
 }
 
-void ABaseWeapon::UnHideMag() const
+void ABaseWeapon::UnHideMagOnServer_Implementation()
+{
+	UnHideMagMulticast();
+}
+
+void ABaseWeapon::UnHideMagMulticast_Implementation()
 {
 	GetWeaponMesh()->HideBoneByName(MagBoneName, EPhysBodyOp::PBO_None);
 }
