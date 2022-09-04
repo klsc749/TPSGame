@@ -77,7 +77,7 @@ void ARifleWeapon::MakeDamage(const FHitResult& HitResult)
 	const auto DamageActor = HitResult.GetActor();
 	if(!DamageActor)
 		return;
-
+	UE_LOG(LogTemp, Warning, TEXT("%p"), GetPlayerController())
 	DamageActor->TakeDamage(DamageAmount, FDamageEvent{}, GetPlayerController(), GetOwner());
 }
 
@@ -88,5 +88,6 @@ void ARifleWeapon::PlayAnimation(UAnimMontage* FireAnimation)
 		return;
 	Player->PlayAnimMontage(FireAnimation);
 }
+
 
 

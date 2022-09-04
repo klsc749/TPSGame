@@ -60,6 +60,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Grenade")
 	TSubclassOf<ABaseProjectile> ProjectileClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="ThrowPath")
+	float ThrowPathGravity = 5.0f;
 	
 	UPROPERTY()
 	AMag* CurrentMag;

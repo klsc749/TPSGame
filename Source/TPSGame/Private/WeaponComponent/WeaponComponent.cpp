@@ -230,6 +230,10 @@ void UWeaponComponent::BeginThrow()
 		return;
 	InThrowProgress = true;
 	PlayAnimationMontage(PreThrow);
+	if(CurrentWeapon)
+	{
+		CurrentWeapon->SetActorHiddenInGame(true);
+	}
 }
 
 void UWeaponComponent::FinishThrow()
@@ -239,6 +243,10 @@ void UWeaponComponent::FinishThrow()
 	PlayAnimationMontage(ThrowMontage);
 	GetOwner()->GetWorldTimerManager().ClearTimer(TraceTimerHandle);
 	SpawnGrenade();
+	if(CurrentWeapon)
+	{
+		CurrentWeapon->SetActorHiddenInGame(false);
+	}
 }
 
 void UWeaponComponent::OnFinishPreThrow(const USkeletalMeshComponent* Mesh)
@@ -469,7 +477,7 @@ void UWeaponComponent::MakeTrace()
 	TArray<AActor*> ActorToIgnore;
 	ActorToIgnore.Add(GetOwner());
 	PredictProjectilePathParams.ActorsToIgnore = ActorToIgnore;
-	PredictProjectilePathParams.OverrideGravityZ = 10.0f;
+	PredictProjectilePathParams.OverrideGravityZ = ThrowPathGravity;
 	FPredictProjectilePathResult ProjectilePathResult;
 	
 	UGameplayStatics::PredictProjectilePath(GetWorld(), PredictProjectilePathParams, ProjectilePathResult);
@@ -511,8 +519,6 @@ void UWeaponComponent::SpawnGrenade()
 	Projectile->SetOwner(GetOwner());
 	const FVector Offset(0, 0, 0.5f);
 	Projectile->SetShotDirection(UKismetMathLibrary::GetForwardVector(Player->GetControlRotation()) + Offset);
-	DrawDebugLine(GetWorld(), Player->GetMesh()->GetSocketTransform(ThrowSocketName).GetLocation(),
-		Player->GetMesh()->GetSocketTransform(ThrowSocketName).GetLocation() + 600 * (UKismetMathLibrary::GetForwardVector(Player->GetControlRotation()) + Offset), FColor::Red, false, 3.0);
 	UGameplayStatics::FinishSpawningActor(Projectile, Player->GetMesh()->GetSocketTransform(ThrowSocketName));
 }
 

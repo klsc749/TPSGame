@@ -60,7 +60,6 @@ void ALauncherWeapon::Shot()
 		UE_LOG(LogTemp, Warning, TEXT("OnCilent"))
 	}*/
 	const FTransform SpawnTransform(FRotator::ZeroRotator, GetMuzzleWorldLocation());
-	DrawDebugLine(GetWorld(), GetMuzzleWorldLocation(), TraceEnd, FColor::Red, false, 3.0f, 0, 3.0f);
 	auto Projectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(ProjectileClass, SpawnTransform);
 	if(!Projectile)
 		return;

@@ -46,8 +46,27 @@ void ABaseProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	ProjectileMovementComponent->StopMovementImmediately();
 	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, GetActorLocation(), DamageRadius, UDamageType::StaticClass(),
 		{GetOwner()}, this, GetController(), DoFullDamage);
-	DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 24, FColor::Cyan, false, 5.0f);
 	VfxComponent->PlayFXImpact(Hit);
+
+	// Add radial force
+
+	TArray<FHitResult> OutHits;
+	FCollisionShape ColSphere = FCollisionShape::MakeSphere(DamageRadius);
+	bool IsHit = GetWorld()->SweepMultiByChannel(OutHits, GetActorLocation(), GetActorLocation(), FQuat::Identity, ECC_WorldStatic, ColSphere);
+
+	if(IsHit)
+	{
+		for(auto& OutHit : OutHits)
+		{
+			UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>((Hit.GetActor())->GetRootComponent());
+			if (MeshComp)
+			{
+				MeshComp->SetSimulatePhysics(true);
+				MeshComp->AddRadialImpulse(GetActorLocation(), DamageRadius, Force, ERadialImpulseFalloff::RIF_Constant, true);
+			}
+		}
+	}
+	
 	Destroy();
 }
 

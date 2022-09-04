@@ -3,7 +3,6 @@
 
 #include "Player/BaseCharacter.h"
 
-#include "GameplayDebuggerTypes.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/TPSPlayerController.h"

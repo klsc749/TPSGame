@@ -40,6 +40,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Amount")
 	bool DoFullDamage = true;
+
+	UPROPERTY(EditDefaultsOnly, Category="Force")
+	float Force = 500.0f;
 private:
 	FVector ShotDirection;
 	UFUNCTION()
